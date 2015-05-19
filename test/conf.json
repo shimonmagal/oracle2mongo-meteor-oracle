@@ -1,0 +1,18 @@
+[
+	{
+		"collection":"tasks",
+		"query": {
+			"sql" : "select * from tasks",
+			"subqueries" : [
+				{
+					"collection":"subTasks",
+					"query":{
+						"sql":"select * from substasks",
+						"linkSrc":"task_id",
+						"linkDest":"id"
+					}
+				}
+			]
+		}
+	}
+]
