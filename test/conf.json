@@ -7,7 +7,7 @@
 				{
 					"collection":"subTasks",
 					"query":{
-						"sql":"select * from substasks",
+						"sql":"select * from subtasks",
 						"linkSrc":"task_id",
 						"linkDest":"id"
 					}

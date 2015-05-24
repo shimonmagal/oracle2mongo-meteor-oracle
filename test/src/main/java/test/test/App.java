@@ -1,5 +1,6 @@
 package test.test;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -11,7 +12,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import oracle2mongo.Oracle2Mongo;
+
 import org.bson.Document;
+import org.json.simple.parser.ParseException;
 
 import com.mongodb.Mongo;
 import com.mongodb.MongoClient;
@@ -25,8 +29,12 @@ import com.mongodb.client.MongoDatabase;
  */
 public class App 
 {
-	public static void main(String[] args) throws SQLException, ClassNotFoundException {
-		Class.forName("oracle.jdbc.driver.OracleDriver");
+	public static void main(String[] args) throws SQLException, ClassNotFoundException, IOException, ParseException {
+		Oracle2Mongo om = new Oracle2Mongo("jdbc:oracle:thin:test/test@localhost:1521:xe", "localhost:3001", 22, "conf.json", "meteor");
+		om.replicate();
+		
+		
+		/*Class.forName("oracle.jdbc.driver.OracleDriver");
 		Connection con = DriverManager.getConnection("jdbc:oracle:thin:test/test@localhost:1521:xe");
 
 		long t = System.currentTimeMillis();
@@ -77,7 +85,7 @@ public class App
 		for(Document doc:iter){
 			System.out.println(doc);
 		}
-		mongo.close();
+		mongo.close();*/
 	}
 
 	private static Set<String> splitAndNormalize(String list) {
