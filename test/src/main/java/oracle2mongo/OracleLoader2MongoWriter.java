@@ -68,15 +68,20 @@ public class OracleLoader2MongoWriter implements Runnable, Comparable<OracleLoad
 			ResultSet rs = ps.executeQuery();
 		){
 			JSONArray json = JsonConverter.convert(rs);
-			JSONArray jsonArr = rearrange(json, linkSrc, collectionName);
+			
+			System.out.println("~~~" + json);
+			
 			for(JSONArray subcol:subcollections){
-				join(jsonArr, subcol);	
+				System.out.println("w" + subcol);
+				join(json, subcol);	
 			}
 			
+			JSONArray jsonArr = rearrange(json, linkSrc, collectionName);
+			
 			System.out.println("========================");
-			System.out.println(json);
+			System.out.println(jsonArr);
 			System.out.println("========================");
-			return json;
+			return jsonArr;
 		}
 		
 	}
@@ -86,7 +91,9 @@ public class OracleLoader2MongoWriter implements Runnable, Comparable<OracleLoad
 		//should be same size
 		for(int i=0;i<jsonArr.size();i++){
 			JSONObject jo = (JSONObject) subcol.get(i);
+			System.out.println("in" + jo);
 			String text = (String) jo.keySet().iterator().next();
+			System.out.println("in" + text);
 			((JSONObject)jsonArr.get(i)).put(text, ((JSONObject)subcol.get(i)).get(text));
 		}
 	}
@@ -101,17 +108,19 @@ public class OracleLoader2MongoWriter implements Runnable, Comparable<OracleLoad
 			JSONObject jo = (JSONObject)elem;
 			Object newLinkSrcField = jo.get(linkSrc);
 			
-			if(linkSrcField != null && newLinkSrcField.equals(linkSrcField)){
-				JSONArray tempJsonArray = (JSONArray) currObject.get(collectionName);
-				tempJsonArray.add(elem);
-			}else{
+			
+
+			if(linkSrcField == null || !newLinkSrcField.equals(linkSrcField)){
 				currObject = new JSONObject();
 				currObject.put(collectionName, new JSONArray());
 				ja.add(currObject);
-				newLinkSrcField = currObject.get(linkSrc);
 			}
+			linkSrcField = jo.get(linkSrc);
+			JSONArray tempJsonArray = (JSONArray) currObject.get(collectionName);
+			tempJsonArray.add(elem);
 		}
 		
+		System.out.println("rearranged:" + ja);
 		return ja;
 	}
 
