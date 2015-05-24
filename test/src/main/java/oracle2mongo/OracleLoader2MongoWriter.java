@@ -1,0 +1,122 @@
+package oracle2mongo;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.LinkedList;
+import java.util.List;
+
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
+
+public class OracleLoader2MongoWriter implements Runnable, Comparable<OracleLoader2MongoWriter>{
+	
+	static{
+		try {
+			Class.forName("oracle.jdbc.driver.OracleDriver");
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private String _jdbcUrl;
+	private String _mongoUrl;
+	private String _mongoDBName;
+	private MongoDatabase _mongoDB;
+	private JSONObject _confRule;
+
+	public OracleLoader2MongoWriter(JSONObject confRule, String jdbcUrl, String mongoUrl, String mongoDBName) throws SQLException {
+		_confRule = confRule;
+		_jdbcUrl = jdbcUrl;
+		_mongoUrl = mongoUrl;
+		MongoClient mongo = new MongoClient(_mongoUrl);
+		_mongoDBName = mongoDBName;
+		_mongoDB = mongo.getDatabase(_mongoDBName);
+
+	}
+
+	public void run() {
+		try(Connection con = DriverManager.getConnection(_jdbcUrl);){
+			work(con, _confRule);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private JSONArray work(Connection con, JSONObject rule) throws SQLException {
+		JSONObject query = (JSONObject) rule.get("QUERY");
+		String collectionName = (String) rule.get("COLLECTION");
+		String sql = (String) query.get("SQL");
+		String linkSrc = (String) query.get("LINKSRC");
+		String linkDest = (String) query.get("LINKDEST");
+		JSONArray subqueries = (JSONArray) query.get("SUBQUERIES");
+		List<JSONArray> subcollections = new LinkedList<JSONArray>();
+		if(subqueries != null){
+			for(Object subquery:subqueries){
+				JSONArray workDone = work(con, (JSONObject) subquery);
+				subcollections.add(workDone);
+			}
+		}
+		String sql2 = sql + (linkSrc==null?"":(" order by " + linkSrc + " asc"));
+		try(
+			PreparedStatement ps = con.prepareStatement(sql2);
+			ResultSet rs = ps.executeQuery();
+		){
+			JSONArray json = JsonConverter.convert(rs);
+			JSONArray jsonArr = rearrange(json, linkSrc, collectionName);
+			for(JSONArray subcol:subcollections){
+				join(jsonArr, subcol);	
+			}
+			
+			System.out.println("========================");
+			System.out.println(json);
+			System.out.println("========================");
+			return json;
+		}
+		
+	}
+
+
+	private void join(JSONArray jsonArr, JSONArray subcol) {
+		//should be same size
+		for(int i=0;i<jsonArr.size();i++){
+			JSONObject jo = (JSONObject) subcol.get(i);
+			String text = (String) jo.keySet().iterator().next();
+			((JSONObject)jsonArr.get(i)).put(text, ((JSONObject)subcol.get(i)).get(text));
+		}
+	}
+
+	private JSONArray rearrange(JSONArray json, String linkSrc,
+			String collectionName) {
+		JSONArray ja = new JSONArray();
+		JSONObject currObject = null;
+		
+		Object linkSrcField = null;
+		for(Object elem:json){
+			JSONObject jo = (JSONObject)elem;
+			Object newLinkSrcField = jo.get(linkSrc);
+			
+			if(linkSrcField != null && newLinkSrcField.equals(linkSrcField)){
+				JSONArray tempJsonArray = (JSONArray) currObject.get(collectionName);
+				tempJsonArray.add(elem);
+			}else{
+				currObject = new JSONObject();
+				currObject.put(collectionName, new JSONArray());
+				ja.add(currObject);
+				newLinkSrcField = currObject.get(linkSrc);
+			}
+		}
+		
+		return ja;
+	}
+
+	public int compareTo(OracleLoader2MongoWriter o) {
+		return 0;
+	}
+
+}
