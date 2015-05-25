@@ -8,10 +8,13 @@ import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.bson.Document;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import com.mongodb.MongoClient;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
 public class OracleLoader2MongoWriter implements Runnable, Comparable<OracleLoader2MongoWriter>{
@@ -34,18 +37,38 @@ public class OracleLoader2MongoWriter implements Runnable, Comparable<OracleLoad
 		_confRule = confRule;
 		_jdbcUrl = jdbcUrl;
 		_mongoUrl = mongoUrl;
-		MongoClient mongo = new MongoClient(_mongoUrl);
+		MongoClient mongo = new MongoClient("localhost",3001);
 		_mongoDBName = mongoDBName;
+		System.out.println("~~~" + _mongoDBName);
 		_mongoDB = mongo.getDatabase(_mongoDBName);
 
 	}
 
 	public void run() {
 		try(Connection con = DriverManager.getConnection(_jdbcUrl);){
-			work(con, _confRule);
+			JSONArray res = work(con, _confRule);
+			
+			for(Object elem: res){
+				JSONObject jo = (JSONObject) elem;
+				String coll = getCollectionName(jo);
+				System.out.println("---->" + coll);
+				MongoCollection<Document> collection = _mongoDB.getCollection(coll);
+				Document doc = Document.parse(((JSONArray)jo.get(coll)).get(0).toString());
+				System.out.println(doc);
+				collection.insertOne(doc );
+				FindIterable<Document> w = collection.find();
+				for(Document ww:w){
+					System.out.println(ww);
+				}
+			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+	}
+
+	private String getCollectionName(JSONObject jo) {
+		String text = (String) jo.keySet().iterator().next();
+		return text;
 	}
 
 	private JSONArray work(Connection con, JSONObject rule) throws SQLException {
@@ -91,9 +114,7 @@ public class OracleLoader2MongoWriter implements Runnable, Comparable<OracleLoad
 		//should be same size
 		for(int i=0;i<jsonArr.size();i++){
 			JSONObject jo = (JSONObject) subcol.get(i);
-			System.out.println("in" + jo);
-			String text = (String) jo.keySet().iterator().next();
-			System.out.println("in" + text);
+			String text = getCollectionName(jo);
 			((JSONObject)jsonArr.get(i)).put(text, ((JSONObject)subcol.get(i)).get(text));
 		}
 	}
