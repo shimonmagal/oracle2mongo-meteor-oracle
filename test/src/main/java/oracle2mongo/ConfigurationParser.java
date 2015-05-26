@@ -3,7 +3,12 @@ package oracle2mongo;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.PriorityBlockingQueue;
 
 import org.apache.commons.io.FileUtils;
@@ -18,6 +23,7 @@ public class ConfigurationParser {
 	private String _jdbcUrl;
 	private String _mongoUrl;
 	private String _mongoDBName;
+	private ConcurrentMap<String, Collection<String>> _tableMap = new ConcurrentHashMap<>();
 
 	public ConfigurationParser(String configurationFile, String jdbcUrl, String mongoUrl, String mongoDBName) {
 		_confFile = configurationFile;
@@ -35,10 +41,14 @@ public class ConfigurationParser {
 		JSONArray jsonArr = (JSONArray) jp.parse(confStr);
 		
 		for(Object mapping:jsonArr){
-			jobs.add(new OracleLoader2MongoWriter((JSONObject) mapping, _jdbcUrl, _mongoUrl, _mongoDBName));
+			jobs.add(new OracleLoader2MongoWriter((JSONObject) mapping, _jdbcUrl, _mongoUrl, _mongoDBName, _tableMap));
 		}
 		
 		return jobs;
+	}
+	
+	public Map<String, Collection<String>> getSqlsForTable(){
+		return _tableMap;
 	}
 
 }

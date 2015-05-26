@@ -1,12 +1,24 @@
 package oracle2mongo;
 
+import java.io.StringReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentMap;
+
+import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.parser.CCJSqlParserManager;
+import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.util.TablesNamesFinder;
 
 import org.bson.Document;
 import org.json.simple.JSONArray;
@@ -32,8 +44,9 @@ public class OracleLoader2MongoWriter implements Runnable, Comparable<OracleLoad
 	private String _mongoDBName;
 	private MongoDatabase _mongoDB;
 	private JSONObject _confRule;
+	private ConcurrentMap<String, Collection<String>> _tableMap;
 
-	public OracleLoader2MongoWriter(JSONObject confRule, String jdbcUrl, String mongoUrl, String mongoDBName) throws SQLException {
+	public OracleLoader2MongoWriter(JSONObject confRule, String jdbcUrl, String mongoUrl, String mongoDBName, ConcurrentMap<String, Collection<String>> tableMap) throws SQLException {
 		_confRule = confRule;
 		_jdbcUrl = jdbcUrl;
 		_mongoUrl = mongoUrl;
@@ -41,6 +54,7 @@ public class OracleLoader2MongoWriter implements Runnable, Comparable<OracleLoad
 		_mongoDBName = mongoDBName;
 		System.out.println("~~~" + _mongoDBName);
 		_mongoDB = mongo.getDatabase(_mongoDBName);
+		_tableMap = tableMap;
 
 	}
 
@@ -61,7 +75,7 @@ public class OracleLoader2MongoWriter implements Runnable, Comparable<OracleLoad
 					System.out.println(ww);
 				}
 			}
-		} catch (SQLException e) {
+		} catch (SQLException | JSQLParserException e) {
 			e.printStackTrace();
 		}
 	}
@@ -71,10 +85,11 @@ public class OracleLoader2MongoWriter implements Runnable, Comparable<OracleLoad
 		return text;
 	}
 
-	private JSONArray work(Connection con, JSONObject rule) throws SQLException {
+	private JSONArray work(Connection con, JSONObject rule) throws SQLException, JSQLParserException {
 		JSONObject query = (JSONObject) rule.get("QUERY");
 		String collectionName = (String) rule.get("COLLECTION");
 		String sql = (String) query.get("SQL");
+		handleSql(sql);//handle sql - refactor later
 		String linkSrc = (String) query.get("LINKSRC");
 		String linkDest = (String) query.get("LINKDEST");
 		JSONArray subqueries = (JSONArray) query.get("SUBQUERIES");
@@ -109,6 +124,34 @@ public class OracleLoader2MongoWriter implements Runnable, Comparable<OracleLoad
 		
 	}
 
+
+	private void handleSql(String sql) throws JSQLParserException {
+		if(sql == null){
+			return;
+		}
+		
+		Set<String> tables = getQueryTables(sql);
+		for(String table:tables){
+			Collection<String>list = new ConcurrentLinkedQueue<String>();
+			list = _tableMap.putIfAbsent(table, list);
+		}
+		
+	}
+	
+	private static Set<String> getQueryTables(String query) throws JSQLParserException{
+		Set<String> tables = new LinkedHashSet<String>();
+		CCJSqlParserManager pm = new CCJSqlParserManager();
+		net.sf.jsqlparser.statement.Statement statement = pm.parse(new StringReader(query));
+		if (statement instanceof Select) {
+			Select selectStatement = (Select) statement;
+			TablesNamesFinder tablesNamesFinder = new TablesNamesFinder();
+			List<String> tableList = tablesNamesFinder.getTableList(selectStatement);
+			for(String table:tableList){
+				tables.add(table);
+			}
+		}
+		return tables;
+	}
 
 	private void join(JSONArray jsonArr, JSONArray subcol) {
 		//should be same size

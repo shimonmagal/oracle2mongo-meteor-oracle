@@ -27,8 +27,9 @@ public class Oracle2Mongo {
 	
 	public void replicate() throws IOException, ParseException, SQLException{
 		//get the configuration to see how to replicate
-		ConfigurationParser configParse = new ConfigurationParser(_configurationFile, _jdbcUrl, _mongoUrl, _mongoDB);
-		BlockingQueue<Runnable> jobs = configParse.getJobs();
+		ConfigurationParser configParser = new ConfigurationParser(_configurationFile, _jdbcUrl, _mongoUrl, _mongoDB);
+		BlockingQueue<Runnable> jobs = configParser.getJobs();
+		configParser.
 		
 		BlockingQueue<Runnable> workers = new ArrayBlockingQueue<Runnable>(_threadCount);
 		//execute threads to perform different jobs
@@ -38,6 +39,13 @@ public class Oracle2Mongo {
 		}
 		
 		tpe.shutdown();
+		
+		
+		long scn = 0;
+		ContinuentReplicator cr = new ContinuentReplicator(scn , _jdbcUrl);
+		while(true){
+			//List<Updates> u = getUpdates(scn, _jdbcUrl);
+		}
 		
 	}
 
