@@ -2,8 +2,12 @@ package oracle2mongo;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -29,7 +33,7 @@ public class Oracle2Mongo {
 		//get the configuration to see how to replicate
 		ConfigurationParser configParser = new ConfigurationParser(_configurationFile, _jdbcUrl, _mongoUrl, _mongoDB);
 		BlockingQueue<Runnable> jobs = configParser.getJobs();
-		configParser.
+		
 		
 		BlockingQueue<Runnable> workers = new ArrayBlockingQueue<Runnable>(_threadCount);
 		//execute threads to perform different jobs
@@ -41,10 +45,18 @@ public class Oracle2Mongo {
 		tpe.shutdown();
 		
 		
+		//continuent replication
+		Map<String, Collection<String>> sqlsForTables = configParser.getSqlsForTable();
 		long scn = 0;
 		ContinuentReplicator cr = new ContinuentReplicator(scn , _jdbcUrl);
 		while(true){
-			//List<Updates> u = getUpdates(scn, _jdbcUrl);
+			ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
+			exec.scheduleAtFixedRate(new Runnable() {
+			  @Override
+			  public void run() {
+				  
+			  }
+			}, 0, 2, TimeUnit.SECONDS);
 		}
 		
 	}
