@@ -49,15 +49,15 @@ public class Oracle2Mongo {
 		Map<String, Collection<String>> sqlsForTables = configParser.getSqlsForTable();
 		long scn = 0;
 		ContinuentReplicator cr = new ContinuentReplicator(scn , _jdbcUrl);
-		while(true){
-			ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
-			exec.scheduleAtFixedRate(new Runnable() {
+
+		/*ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
+		exec.scheduleAtFixedRate(new Runnable() {
 			  @Override
 			  public void run() {
 				  
 			  }
 			}, 0, 2, TimeUnit.SECONDS);
-		}
+		}*/
 		
 	}
 

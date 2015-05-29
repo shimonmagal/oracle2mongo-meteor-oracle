@@ -2,25 +2,7 @@
 	{
 		"collection":"tasks",
 		"query": {
-			"sql" : "select * from tasks",
-			"subqueries" : [
-				{
-					"collection":"subcollection",
-					"query":{
-						"sql":"select * from subcollection",
-						"linkSrc":"task_id",
-						"linkDest":"id"
-					}
-				},
-				{
-					"collection":"subTasks",
-					"query":{
-						"sql":"select * from subtasks",
-						"linkSrc":"task_id",
-						"linkDest":"id"
-					}
-				}
-			]
+			"sql" : "select id,content as text from tasks",
 		}
 	}
 ]
