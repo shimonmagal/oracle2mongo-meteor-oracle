@@ -16,6 +16,12 @@ import org.json.simple.parser.ParseException;
 
 public class Oracle2Mongo {
 
+	private static final String SELECT_ALL_TABLES_WITH_PRIMARY_KEYS =
+			"SELECT cols.table_name, cols.column_name " +
+			"FROM user_constraints cons, user_cons_columns cols " +
+			"where cons.constraint_type = 'P' AND cons.constraint_name = cols.constraint_name "+
+			"AND cons.owner = cols.owner ORDER BY cols.table_name, cols.position";
+
 	static {
 		try {
 			Class.forName("oracle.jdbc.driver.OracleDriver");
@@ -44,7 +50,7 @@ public class Oracle2Mongo {
 	 *            - a configuration file, please refer to configuration
 	 *            documentation
 	 * @throws IOException
-	 * @throws ParseException 
+	 * @throws ParseException
 	 */
 	public Oracle2Mongo(String jdbcUrl, String mongoUrl, String mongoDBName,
 			File configuration) throws IOException, ParseException {
@@ -54,15 +60,16 @@ public class Oracle2Mongo {
 	}
 
 	/**
-	 * @see Oracle2Mongo#Oracle2Mongo(String, String, String, File)
-	 * They are basically the same, but here there is no need to pass configuration,
-	 * if you are interested in default configuration - each table in oracle become a
-	 * collection in mongo, Every record becomes a document.
+	 * @see Oracle2Mongo#Oracle2Mongo(String, String, String, File) They are
+	 *      basically the same, but here there is no need to pass configuration,
+	 *      if you are interested in default configuration - each table in
+	 *      oracle become a collection in mongo, Every record becomes a
+	 *      document.
 	 * @param jdbcUrl
 	 * @param mongoUrl
 	 * @param mongoDBName
 	 * @throws SQLException
-	 * @throws ParseException 
+	 * @throws ParseException
 	 */
 	public Oracle2Mongo(String jdbcUrl, String mongoUrl, String mongoDBName)
 			throws SQLException, ParseException {
@@ -72,31 +79,34 @@ public class Oracle2Mongo {
 
 	/**
 	 * Private constructor - recevies a configuration string
+	 * 
 	 * @param jdbcUrl
 	 * @param mongoUrl
 	 * @param mongoDBName
 	 * @param configurationString
-	 * @throws ParseException 
+	 * @throws ParseException
 	 */
 	private Oracle2Mongo(String jdbcUrl, String mongoUrl, String mongoDBName,
 			String configurationString) throws ParseException {
 		_jdbcUrl = jdbcUrl;
 		_mongoUrl = mongoUrl;
 		_mongoDBName = mongoDBName;
-		_configurationString = configurationString.toUpperCase(); //upper case
-		ConfigurationParser confParser = new ConfigurationParser(_configurationString);
+		_configurationString = configurationString.toUpperCase(); // upper case
+		ConfigurationParser confParser = new ConfigurationParser(
+				_configurationString);
 		_rules = confParser.parse();
 	}
-	
-	public void replicateSnapshot(){
-		
+
+	public void replicateSnapshot() {
+
 	}
 
 	/**
 	 * Creates a default configuration - that is, every table == collections,
-	 * and each field in table == field in collection.
-	 * This is done by generating a basic default configuration, based on all the tables
-	 * in your scheme.
+	 * and each field in table == field in collection. This is done by
+	 * generating a basic default configuration, based on all the tables in your
+	 * scheme that have a primary key. Others are ignored.
+	 * The primary key coulmn shall become the document's "_id".
 	 * 
 	 * @param jdbcUrl
 	 * @return string that represents the configuration
@@ -106,19 +116,22 @@ public class Oracle2Mongo {
 			throws SQLException {
 		try (Connection connection = DriverManager.getConnection(jdbcUrl);
 				PreparedStatement ps = connection
-						.prepareStatement("select table_name from user_tables");
+						.prepareStatement(SELECT_ALL_TABLES_WITH_PRIMARY_KEYS);
 				ResultSet rs = ps.executeQuery();) {
 			JSONArray ja = new JSONArray();
 			while (rs.next()) {
 				String tablename = rs.getString("table_name");
+				String columnName = rs.getString("column_name");
 				JSONObject jo = new JSONObject();
 				JSONObject queryDetails = new JSONObject();
-				jo.put("collection", tablename);
-				queryDetails.put("sql", String.format("select * from %s", tablename));
-				jo.put("rule",queryDetails);
+				jo.put("COLLECTION", tablename);
+				queryDetails.put("sql",
+						String.format("select * from %s", tablename));
+				queryDetails.put("ID_FIELD",columnName);
+				jo.put("RULE", queryDetails);
 				ja.add(jo);
 			}
-			
+
 			return ja.toJSONString();
 		}
 	}

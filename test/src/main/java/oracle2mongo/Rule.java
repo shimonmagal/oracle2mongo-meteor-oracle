@@ -10,6 +10,7 @@ public class Rule {
 	private String _linkSrc;
 	private String _linkDest;
 	private String _collectionName;
+	private String _idField = "ID";
 	
 	public Rule(JSONObject ruleJson) {
 		JSONObject ruleJO = (JSONObject) ruleJson.get("RULE");
@@ -17,6 +18,10 @@ public class Rule {
 		_sql = (String) ruleJO.get("SQL");
 		_linkSrc = (String) ruleJO.get("LINKSRC");
 		_linkSrc = (String) ruleJO.get("LINKDEST");
+		//added support for primary key that is 
+		if(ruleJO.get("ID") != null){
+			_idField = (String) ruleJO.get("ID");
+		}
 		JSONArray subrules = (JSONArray) ruleJO.get("SUBRULES");
 		_childRules = new Rule[subrules.size()];
 		for(int i=0;i<subrules.size();i++){
