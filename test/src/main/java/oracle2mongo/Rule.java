@@ -16,11 +16,11 @@ public class Rule {
 		JSONObject ruleJO = (JSONObject) ruleJson.get("RULE");
 		_collectionName = (String) ruleJO.get("COLLECTION");
 		_sql = (String) ruleJO.get("SQL");
-		_linkSrc = (String) ruleJO.get("LINKSRC");
-		_linkSrc = (String) ruleJO.get("LINKDEST");
+		_linkSrc = (String) ruleJO.get("LINK_SRC");
+		_linkSrc = (String) ruleJO.get("LINK_DEST");
 		//added support for primary key that is 
 		if(ruleJO.get("ID") != null){
-			_idField = (String) ruleJO.get("ID");
+			_idField = (String) ruleJO.get("ID_FIELD");
 		}
 		JSONArray subrules = (JSONArray) ruleJO.get("SUBRULES");
 		_childRules = new Rule[subrules.size()];
