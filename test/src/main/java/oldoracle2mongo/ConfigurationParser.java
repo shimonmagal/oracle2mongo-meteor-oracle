@@ -1,4 +1,4 @@
-package oracle2mongo;
+package oldoracle2mongo;
 
 import java.io.File;
 import java.io.IOException;

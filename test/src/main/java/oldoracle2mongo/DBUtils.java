@@ -1,4 +1,4 @@
-package oracle2mongo;
+package oldoracle2mongo;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

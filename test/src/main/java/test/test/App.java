@@ -12,7 +12,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import oracle2mongo.Oracle2Mongo;
+import oldoracle2mongo.Oracle2Mongo;
 
 import org.bson.Document;
 import org.json.simple.parser.ParseException;
