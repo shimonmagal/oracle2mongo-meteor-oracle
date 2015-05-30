@@ -24,6 +24,12 @@ public class Oracle2Mongo {
 		}
 	}
 
+	private String _jdbcUrl;
+	private String _mongoUrl;
+	private String _mongoDBName;
+	private String _configurationString;
+	private List<Rule> _rules;
+
 	/**
 	 * creates a replicator between oracle and mongoDB
 	 * 
@@ -54,7 +60,16 @@ public class Oracle2Mongo {
 
 	private Oracle2Mongo(String jdbcUrl, String mongoUrl, String mongoDBName,
 			String configurationString) {
-
+		_jdbcUrl = jdbcUrl;
+		_mongoUrl = mongoUrl;
+		_mongoDBName = mongoDBName;
+		_configurationString = configurationString;
+		ConfigurationParser confParser = new ConfigurationParser(_configurationString);
+		_rules = confParser.parse();
+	}
+	
+	public void replicateSnapshot(){
+		
 	}
 
 	/**
