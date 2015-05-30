@@ -7,12 +7,12 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.ParseException;
 
 public class Oracle2Mongo {
 
@@ -44,26 +44,46 @@ public class Oracle2Mongo {
 	 *            - a configuration file, please refer to configuration
 	 *            documentation
 	 * @throws IOException
+	 * @throws ParseException 
 	 */
 	public Oracle2Mongo(String jdbcUrl, String mongoUrl, String mongoDBName,
-			File configuration) throws IOException {
+			File configuration) throws IOException, ParseException {
 		// read file
 		this(jdbcUrl, mongoUrl, mongoDBName, FileUtils
 				.readFileToString(configuration));
 	}
 
+	/**
+	 * @see Oracle2Mongo#Oracle2Mongo(String, String, String, File)
+	 * They are basically the same, but here there is no need to pass configuration,
+	 * if you are interested in default configuration - each table in oracle become a
+	 * collection in mongo, Every record becomes a document.
+	 * @param jdbcUrl
+	 * @param mongoUrl
+	 * @param mongoDBName
+	 * @throws SQLException
+	 * @throws ParseException 
+	 */
 	public Oracle2Mongo(String jdbcUrl, String mongoUrl, String mongoDBName)
-			throws SQLException {
+			throws SQLException, ParseException {
 		this(jdbcUrl, mongoUrl, mongoDBName,
 				createDefaultConfiguratuin(jdbcUrl));
 	}
 
+	/**
+	 * Private constructor - recevies a configuration string
+	 * @param jdbcUrl
+	 * @param mongoUrl
+	 * @param mongoDBName
+	 * @param configurationString
+	 * @throws ParseException 
+	 */
 	private Oracle2Mongo(String jdbcUrl, String mongoUrl, String mongoDBName,
-			String configurationString) {
+			String configurationString) throws ParseException {
 		_jdbcUrl = jdbcUrl;
 		_mongoUrl = mongoUrl;
 		_mongoDBName = mongoDBName;
-		_configurationString = configurationString;
+		_configurationString = configurationString.toUpperCase(); //upper case
 		ConfigurationParser confParser = new ConfigurationParser(_configurationString);
 		_rules = confParser.parse();
 	}
@@ -86,16 +106,16 @@ public class Oracle2Mongo {
 			throws SQLException {
 		try (Connection connection = DriverManager.getConnection(jdbcUrl);
 				PreparedStatement ps = connection
-						.prepareStatement("select tablename from user_tables");
+						.prepareStatement("select table_name from user_tables");
 				ResultSet rs = ps.executeQuery();) {
 			JSONArray ja = new JSONArray();
 			while (rs.next()) {
-				String tablename = rs.getString("tablename");
+				String tablename = rs.getString("table_name");
 				JSONObject jo = new JSONObject();
 				JSONObject queryDetails = new JSONObject();
 				jo.put("collection", tablename);
 				queryDetails.put("sql", String.format("select * from %s", tablename));
-				jo.put("query",queryDetails);
+				jo.put("rule",queryDetails);
 				ja.add(jo);
 			}
 			
