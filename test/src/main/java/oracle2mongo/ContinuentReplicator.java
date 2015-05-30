@@ -101,5 +101,21 @@ public class ContinuentReplicator {
 	public static void main(String[] args) throws SQLException {
 		new ContinuentReplicator(0, "jdbc:oracle:thin:test/test@localhost:1521:xe", "localhost:3001","meteor").replicate();;
 	}
+	
+	/**
+	 * > db.tasks.update({"a.b.c._id":3}, {$push: {"a" :[ {b : [{c: [{"_id":4,vv: "abcd
+"}]}]}]}},{upercast: true});
+WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
+>
+> db.tasks.find();
+{ "_id" : 1, "a" : [ { "b" : [ { "c" : [ { "_id" : 3, "vv" : "abcd" } ] } ] }, [
+ { "b" : [ { "c" : [ { "_id" : 4, "vv" : "abcd" } ] } ] } ] ] }
+>
+>
+> db.tasks.update({"a.b.c._id":3}, {$pull: {"a" :[ {b : [{c: [{"_id":4,vv: "abcd
+"}]}]}]}},{upercast: true});
+WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
+>
+	 */
 
 }
