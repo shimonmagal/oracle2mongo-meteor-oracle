@@ -31,6 +31,8 @@ import org.apache.commons.io.FileUtils;
 import org.bson.BSON;
 import org.bson.BsonDocument;
 import org.bson.BsonElement;
+import org.bson.BsonInt32;
+import org.bson.BsonInt64;
 import org.bson.BsonString;
 import org.bson.BsonValue;
 import org.bson.Document;
@@ -205,8 +207,6 @@ public class Oracle2Mongo {
 	}
 
 	private void handleLogEventWithRule(LogEvent logEvent, Rule rule) throws SQLException {
-		//delete not handled yet
-		
 		MongoCollection<Document> coll = _mongoDB.getCollection(rule.getCollectionName());
 		String sql = null;
 		String qMarks = qMarks(logEvent._ids.size());
@@ -218,6 +218,18 @@ public class Oracle2Mongo {
 			sql = String.format("select %s from %s as of scn ? where id in (%s)", logEvent._fields + "," + rule.getIdFieldName() , logEvent._tableName, qMarks);
 		}
 				
+		
+		if(rule.getParentRule() == null && logEvent._op == OPERATION.DELETE){
+			for(Long id: logEvent._ids){
+				BsonValue val = new BsonInt32(1234);
+				Bson x = new BsonDocument("ID",val);
+				System.out.println(rule.getIdFieldName() + " " + val);
+				coll.deleteOne(x);
+				System.out.println("delete");
+			}
+			return;
+		}
+		
 		try(
 				Connection connection = _bds.getConnection();
 				PreparedStatement ps = connection.prepareStatement(sql);
@@ -250,15 +262,6 @@ public class Oracle2Mongo {
 						coll.updateOne(x, y);
 					}
 				}
-				else if(rule.getParentRule() == null && logEvent._op == OPERATION.DELETE){
-					for(Object jo:jsonArray){
-						JSONObject jsonObject = (JSONObject)jo;
-						BsonValue val = new BsonString(jsonObject.get(rule.getIdFieldName()).toString());
-						Bson x = new BsonDocument("id",val);
-						coll.deleteOne(x);
-					}
-				}
-				
 			}
 		}
 		
