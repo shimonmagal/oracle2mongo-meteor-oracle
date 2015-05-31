@@ -1,12 +1,15 @@
 package oracle2mongo;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 public class Rule {
 	private Rule _parentRule;
 	private String _sql;
-	private Rule[] _childRules = new Rule[0];
+	private List<Rule> _childRules = new LinkedList<>();
 	private String _linkSrc;
 	private String _linkDest;
 	private String _collectionName;
@@ -25,9 +28,9 @@ public class Rule {
 		}
 		JSONArray subrules = (JSONArray) ruleJO.get("SUBRULES");
 		if(subrules != null){
-			_childRules = new Rule[subrules.size()];
+			_childRules = new LinkedList<>();
 			for(int i=0;i<subrules.size();i++){
-				_childRules[i] = new Rule((JSONObject) subrules.get(i), this);
+				_childRules.add(new Rule((JSONObject) subrules.get(i), this));
 			}
 		}
 	}
@@ -45,7 +48,7 @@ public class Rule {
 		return _sql;
 	}
 
-	public Rule[] getChildRules() {
+	public List<Rule> getChildRules() {
 		return _childRules;
 	}
 

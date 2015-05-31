@@ -9,10 +9,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import oracle2mongo.LogEvent;
+
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
-
-import test.test.LogEvent;
 
 public class ContinuentReplicator {
 

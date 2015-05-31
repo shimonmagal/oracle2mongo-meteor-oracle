@@ -1,4 +1,4 @@
-package test.test;
+package oracle2mongo;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -14,7 +14,7 @@ public class LogEvent {
 
 	public static String _tableName;
 	public static Set<Long> _ids = new HashSet<Long>();
-	public static Set<String> _fields = new HashSet<String>();
+	public static String _fields = "";
 	public static long _scn;
 	public OPERATION _op;
 	
@@ -28,8 +28,7 @@ public class LogEvent {
 		_scn = scn;
 		
 		//fields:
-		String[] fieldsSplit = fields.split("[\\s]*,[\\s]*");
-		_fields.addAll(Arrays.asList(fieldsSplit));
+		_fields = fields;
 		
 		//op:
 		switch(op){

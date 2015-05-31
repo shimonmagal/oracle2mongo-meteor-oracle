@@ -2,27 +2,14 @@ package test.test;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Set;
 
+import net.sf.jsqlparser.JSQLParserException;
 import oracle2mongo.Oracle2Mongo;
 
-import org.bson.Document;
 import org.json.simple.parser.ParseException;
-
-import com.mongodb.Mongo;
-import com.mongodb.MongoClient;
-import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 
 /**
  * Hello world!
@@ -30,9 +17,13 @@ import com.mongodb.client.MongoDatabase;
  */
 public class App 
 {
-	public static void main(String[] args) throws SQLException, ClassNotFoundException, IOException, ParseException {
+	public static void main(String[] args) throws SQLException, ClassNotFoundException, IOException, ParseException, JSQLParserException, InterruptedException {
 		Oracle2Mongo om = new Oracle2Mongo("jdbc:oracle:thin:test/test@localhost:1521:xe", "localhost:3001", "meteor", new File("conf.json"), 22);
 		om.replicateSnapshot();
+		while(true){
+		Thread.sleep(2000);
+		om.replicateContinuent();
+		}
 		
 		
 		/*Class.forName("oracle.jdbc.driver.OracleDriver");
