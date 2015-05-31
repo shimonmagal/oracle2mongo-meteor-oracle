@@ -1,5 +1,6 @@
 package test.test;
 
+import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -12,7 +13,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import oldoracle2mongo.Oracle2Mongo;
+import oracle2mongo.Oracle2Mongo;
 
 import org.bson.Document;
 import org.json.simple.parser.ParseException;
@@ -30,8 +31,8 @@ import com.mongodb.client.MongoDatabase;
 public class App 
 {
 	public static void main(String[] args) throws SQLException, ClassNotFoundException, IOException, ParseException {
-		Oracle2Mongo om = new Oracle2Mongo("jdbc:oracle:thin:test/test@localhost:1521:xe", "localhost:3001", 22, "conf.json", "meteor");
-		om.replicate();
+		Oracle2Mongo om = new Oracle2Mongo("jdbc:oracle:thin:test/test@localhost:1521:xe", "localhost:3001", "meteor", new File("conf.json"), 22);
+		om.replicateSnapshot();
 		
 		
 		/*Class.forName("oracle.jdbc.driver.OracleDriver");

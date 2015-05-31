@@ -19,6 +19,7 @@ import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.parser.CCJSqlParserManager;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.util.TablesNamesFinder;
+import oracle2mongo.JsonConverter;
 
 import org.bson.Document;
 import org.json.simple.JSONArray;

@@ -6,15 +6,16 @@ import org.json.simple.JSONObject;
 public class Rule {
 	private Rule _parentRule;
 	private String _sql;
-	private Rule[] _childRules;
+	private Rule[] _childRules = new Rule[0];
 	private String _linkSrc;
 	private String _linkDest;
 	private String _collectionName;
 	private String _idField = "ID";
 	
 	public Rule(JSONObject ruleJson) {
+		System.out.println(ruleJson);
 		JSONObject ruleJO = (JSONObject) ruleJson.get("RULE");
-		_collectionName = (String) ruleJO.get("COLLECTION");
+		_collectionName = (String) ruleJson.get("COLLECTION");
 		_sql = (String) ruleJO.get("SQL");
 		_linkSrc = (String) ruleJO.get("LINK_SRC");
 		_linkSrc = (String) ruleJO.get("LINK_DEST");
@@ -23,9 +24,11 @@ public class Rule {
 			_idField = (String) ruleJO.get("ID_FIELD");
 		}
 		JSONArray subrules = (JSONArray) ruleJO.get("SUBRULES");
-		_childRules = new Rule[subrules.size()];
-		for(int i=0;i<subrules.size();i++){
-			_childRules[i] = new Rule((JSONObject) subrules.get(i), this);
+		if(subrules != null){
+			_childRules = new Rule[subrules.size()];
+			for(int i=0;i<subrules.size();i++){
+				_childRules[i] = new Rule((JSONObject) subrules.get(i), this);
+			}
 		}
 	}
 
@@ -57,6 +60,10 @@ public class Rule {
 
 	public String getCollectionName() {
 		return _collectionName;
+	}
+	
+	public String getIdFieldName(){
+		return _idField;
 	}
 	
 }

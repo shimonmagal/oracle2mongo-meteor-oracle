@@ -8,11 +8,19 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.commons.io.FileUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.ParseException;
+
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
 public class Oracle2Mongo {
 
@@ -35,6 +43,7 @@ public class Oracle2Mongo {
 	private String _mongoDBName;
 	private String _configurationString;
 	private List<Rule> _rules;
+	private int _threadCount;
 
 	/**
 	 * creates a replicator between oracle and mongoDB
@@ -49,14 +58,15 @@ public class Oracle2Mongo {
 	 * @param configuration
 	 *            - a configuration file, please refer to configuration
 	 *            documentation
+	 * @param threadCount - number of threads to use
 	 * @throws IOException
 	 * @throws ParseException
 	 */
 	public Oracle2Mongo(String jdbcUrl, String mongoUrl, String mongoDBName,
-			File configuration) throws IOException, ParseException {
+			File configuration, int threadCount) throws IOException, ParseException {
 		// read file
 		this(jdbcUrl, mongoUrl, mongoDBName, FileUtils
-				.readFileToString(configuration));
+				.readFileToString(configuration), threadCount);
 	}
 
 	/**
@@ -68,13 +78,14 @@ public class Oracle2Mongo {
 	 * @param jdbcUrl
 	 * @param mongoUrl
 	 * @param mongoDBName
+	 * @param threadCount - number of threads to use
 	 * @throws SQLException
 	 * @throws ParseException
 	 */
-	public Oracle2Mongo(String jdbcUrl, String mongoUrl, String mongoDBName)
+	public Oracle2Mongo(String jdbcUrl, String mongoUrl, String mongoDBName, int threadCount)
 			throws SQLException, ParseException {
 		this(jdbcUrl, mongoUrl, mongoDBName,
-				createDefaultConfiguratuin(jdbcUrl));
+				createDefaultConfiguratuin(jdbcUrl), threadCount);
 	}
 
 	/**
@@ -87,18 +98,47 @@ public class Oracle2Mongo {
 	 * @throws ParseException
 	 */
 	private Oracle2Mongo(String jdbcUrl, String mongoUrl, String mongoDBName,
-			String configurationString) throws ParseException {
+			String configurationString, int threadCount) throws ParseException {
 		_jdbcUrl = jdbcUrl;
 		_mongoUrl = mongoUrl;
 		_mongoDBName = mongoDBName;
+		_threadCount = threadCount;
 		_configurationString = configurationString.toUpperCase(); // upper case
 		ConfigurationParser confParser = new ConfigurationParser(
 				_configurationString);
 		_rules = confParser.parse();
 	}
 
-	public void replicateSnapshot() {
+	public void replicateSnapshot() throws SQLException {
+		BasicDataSource bds = new BasicDataSource();
+		bds.setUrl(_jdbcUrl);
+		bds.setDriverClassName("oracle.jdbc.driver.OracleDriver");
+		bds.setMaxActive(_threadCount);
+		MongoClient mongoClient = new MongoClient(_mongoUrl);
+		MongoDatabase mongoDB = mongoClient.getDatabase(_mongoDBName);
+		long scn = getScn(bds);
+		
+		
+		BlockingQueue<Runnable> jobs = new ArrayBlockingQueue<Runnable>(_threadCount);
+		//execute threads to perform different jobs
+		ThreadPoolExecutor tpe = new ThreadPoolExecutor(_threadCount, _threadCount, 10000, TimeUnit.SECONDS, jobs);
+		for(Rule rule:_rules){
+			tpe.execute(new Oracle2MongoSnapshotWorker(rule, bds, mongoDB, scn));	
+		}
+		
+		tpe.shutdown();
+	}
 
+	private long getScn(BasicDataSource bds) throws SQLException {
+		try (
+				Connection c = bds.getConnection();
+				PreparedStatement ps = c.prepareStatement("select current_scn from gv$database");
+				ResultSet rs = ps.executeQuery();
+			){
+			rs.next();		
+			return rs.getLong("CURRENT_SCN");
+			
+		}
 	}
 
 	/**
