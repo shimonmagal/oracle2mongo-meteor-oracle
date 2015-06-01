@@ -2,7 +2,7 @@
 	{
 		"collection":"tasks",
 		"rule": {
-			"sql" : "select id,content as text from tasks",
+			"sql" : "select id,text from tasks",
 		}
 	}
 ]

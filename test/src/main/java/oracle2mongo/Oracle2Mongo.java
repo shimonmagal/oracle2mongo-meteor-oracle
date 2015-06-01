@@ -41,9 +41,11 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.ParseException;
 
+import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.util.JSON;
 
 public class Oracle2Mongo {
 
@@ -211,7 +213,7 @@ public class Oracle2Mongo {
 		String sql = null;
 		String qMarks = qMarks(logEvent._ids.size());
 		if(logEvent._op == OPERATION.INSERT){
-			sql = String.format("select * from %s as of scn ? where id in (%s)","%s", logEvent._tableName,qMarks);
+			sql = String.format("select * from %s as of scn ? where id in (%s)", logEvent._tableName,qMarks);
 		}
 		else if(logEvent._op == OPERATION.UPDATE){
 			//"," + rule.getLinkSrc()
@@ -221,10 +223,12 @@ public class Oracle2Mongo {
 		
 		if(rule.getParentRule() == null && logEvent._op == OPERATION.DELETE){
 			for(Long id: logEvent._ids){
-				BsonValue val = new BsonInt32(1234);
+				BsonValue val = new BsonInt64(id);
 				Bson x = new BsonDocument("ID",val);
 				System.out.println(rule.getIdFieldName() + " " + val);
-				coll.deleteOne(x);
+				System.out.println(x);
+				coll.deleteMany(x);
+				
 				System.out.println("delete");
 			}
 			return;
@@ -234,6 +238,7 @@ public class Oracle2Mongo {
 				Connection connection = _bds.getConnection();
 				PreparedStatement ps = connection.prepareStatement(sql);
 				){
+			System.out.println(sql);
 			int k=0;
 			ps.setLong(++k, logEvent._scn);
 			for(Long id:logEvent._ids){
@@ -245,26 +250,60 @@ public class Oracle2Mongo {
 				JSONArray jsonArray = JsonConverter.convert(rs);
 				
 				if(rule.getParentRule() == null && logEvent._op == OPERATION.INSERT){
-					coll.insertMany(JsonConverter.convert(rs));
+					List<Document> docs = new LinkedList<>();
+					for(Object elem:jsonArray){
+						JSONObject joe = (JSONObject)elem;
+						Map<String,Object> map = new HashMap<>();
+						for(Object key:joe.keySet()){
+							map.put(key.toString(), joe.get(key).toString());
+						}
+						Document doc = new Document(map);
+						docs.add(doc);
+					}
+					coll.insertMany(docs);
 				}
 				else if(rule.getParentRule() == null && logEvent._op == OPERATION.UPDATE){
-					
-					for(Object jo:jsonArray){
-						JSONObject jsonObject = (JSONObject)jo;
-						BsonValue val = new BsonString(jsonObject.get(rule.getIdFieldName()).toString());
-						Bson x = new BsonDocument("id",val);
+					for(Object elem:jsonArray){
+						BsonValue val = new BsonInt64((Long.parseLong(((JSONObject)elem).get(rule.getIdFieldName()).toString())));
+						Bson x = new BsonDocument("ID",val);
+						JSONObject joe = (JSONObject)elem;
 						
-						List<BsonElement> list = new LinkedList<BsonElement>();
-						for(Object key:jsonObject.keySet()){
-							list.add(new BsonElement((String)key, new BsonString(jsonObject.get(key).toString())));
+						List<BsonElement> bsonElements = new LinkedList<>();
+						
+						for(Object key:joe.keySet()){
+							String keyS = key.toString();
+							Document doc = new Document("$set", new Document(keyS, joe.get(keyS).toString()));
+							coll.updateOne(x, doc);
 						}
-						Bson y = new BsonDocument(list );
-						coll.updateOne(x, y);
+					}
+				}
+				
+				else if(logEvent._op == OPERATION.INSERT){
+					//Document doc = new Document("$push", new Document(keyS, joe.get(keyS).toString()));
+					for(Long id:logEvent._ids){
+						BsonDocument filterDocument = BsonDocument.parse("{" + cascadeRule(rule) + ".id:" + id + "}");
+			//			Bson doc = cascade2(id, rule);
+				//		coll.updateOne(filterDocument, doc );
 					}
 				}
 			}
 		}
 		
+	}
+
+	private String cascade2(Long id, Rule rule) {
+		if(rule.getParentRule() == null)
+			return "[{id:"+id+"}]";
+		return cascadeRule(rule.getParentRule()) + "." + rule.getCollectionName();
+		
+		
+		//a: [{b: [{c: [{"_id":2}]}]}]
+	}
+
+	private String cascadeRule(Rule rule) {
+		if(rule.getParentRule() == null)
+			return rule.getCollectionName();
+		return cascadeRule(rule.getParentRule()) + "." + rule.getCollectionName();
 	}
 
 	private String qMarks(int size) {
