@@ -2,7 +2,23 @@
 	{
 		"collection":"tasks",
 		"rule": {
-			"sql" : "select id,text from tasks",
+			"sql" : "select * from tasks",
+			"subrules" : [
+				{
+					"collection":"subcollection",
+					"rule":{
+						"sql":"select * from subcollection",
+						"LINK_SRC":"task_id"
+					}
+				},
+				{
+					"collection":"subTasks",
+					"rule":{
+						"sql":"select * from subtasks",
+						"LINK_SRC":"task_id"
+					}
+				}
+			]
 		}
 	}
 ]

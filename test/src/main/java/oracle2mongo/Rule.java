@@ -21,7 +21,6 @@ public class Rule {
 		_collectionName = (String) ruleJson.get("COLLECTION");
 		_sql = (String) ruleJO.get("SQL");
 		_linkSrc = (String) ruleJO.get("LINK_SRC");
-		_linkSrc = (String) ruleJO.get("LINK_DEST");
 		//added support for primary key that is 
 		if(ruleJO.get("ID") != null){
 			_idField = (String) ruleJO.get("ID_FIELD");
@@ -55,10 +54,6 @@ public class Rule {
 
 	public String getLinkSrc() {
 		return _linkSrc;
-	}
-
-	public String getLinkDest() {
-		return _linkDest;
 	}
 
 	public String getCollectionName() {
