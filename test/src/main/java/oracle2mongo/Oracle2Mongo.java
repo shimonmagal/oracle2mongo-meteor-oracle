@@ -90,10 +90,11 @@ public class Oracle2Mongo {
 	 *            - number of threads to use
 	 * @throws IOException
 	 * @throws ParseException
+	 * @throws SQLException 
 	 */
 	public Oracle2Mongo(String jdbcUrl, String mongoUrl, String mongoDBName,
 			File configuration, int threadCount) throws IOException,
-			ParseException {
+			ParseException, SQLException {
 		// read file
 		this(jdbcUrl, mongoUrl, mongoDBName, FileUtils
 				.readFileToString(configuration), threadCount);
@@ -127,9 +128,10 @@ public class Oracle2Mongo {
 	 * @param mongoDBName
 	 * @param configurationString
 	 * @throws ParseException
+	 * @throws SQLException 
 	 */
 	private Oracle2Mongo(String jdbcUrl, String mongoUrl, String mongoDBName,
-			String configurationString, int threadCount) throws ParseException {
+			String configurationString, int threadCount) throws ParseException, SQLException {
 		_jdbcUrl = jdbcUrl;
 		_mongoUrl = mongoUrl;
 		_mongoDBName = mongoDBName;
@@ -138,9 +140,6 @@ public class Oracle2Mongo {
 		ConfigurationParser confParser = new ConfigurationParser(
 				_configurationString);
 		_rules = confParser.parse();
-	}
-
-	public void replicateSnapshot() throws SQLException {
 		_bds = new BasicDataSource();
 		_bds.setUrl(_jdbcUrl);
 		_bds.setDriverClassName("oracle.jdbc.driver.OracleDriver");
@@ -148,6 +147,12 @@ public class Oracle2Mongo {
 		MongoClient mongoClient = new MongoClient(_mongoUrl);
 		_mongoDB = mongoClient.getDatabase(_mongoDBName);
 		_scn = getScn(_bds);
+		
+		_continentReplicator = new ContinuentReplicator(_bds, _mongoDB, _scn, _rules);
+
+	}
+
+	public void replicateSnapshot() throws SQLException {
 
 		BlockingQueue<Runnable> jobs = new ArrayBlockingQueue<Runnable>(
 				_threadCount);
@@ -160,7 +165,6 @@ public class Oracle2Mongo {
 		}
 
 		tpe.shutdown();
-		_continentReplicator = new ContinuentReplicator(_bds, _mongoDB, _scn, _rules);
 	}
 	
 	public void replicateContinuent() throws SQLException, JSQLParserException{

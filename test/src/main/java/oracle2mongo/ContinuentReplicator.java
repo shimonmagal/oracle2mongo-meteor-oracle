@@ -167,9 +167,11 @@ public class ContinuentReplicator {
 				else if(logEvent._op == OPERATION.INSERT){
 					//Document doc = new Document("$push", new Document(keyS, joe.get(keyS).toString()));
 					for(Long id:logEvent._ids){
-						BsonDocument filterDocument = BsonDocument.parse("{" + cascadeRule(rule) + ".id:" + id + "}");
-						System.out.println(filterDocument + "****");
-			//			Bson doc = cascade2(id, rule);
+						String doc = "{\"" + cascadeRule(rule) + ".id\":" + id + "}";
+						System.out.println(doc);
+						BsonDocument filterDocument = BsonDocument.parse(doc);
+						String doc2 = cascade2(rule);
+						String doc3 = "{$push : " {+ doc2 + "}}" 
 				//		coll.updateOne(filterDocument, doc );
 					}
 				}
@@ -178,10 +180,10 @@ public class ContinuentReplicator {
 		
 	}
 
-	private String cascade2(Long id, Rule rule) {
+	private String cascade2(Rule rule) {
 		if(rule.getParentRule() == null)
-			return "[{id:"+id+"}]";
-		return cascadeRule(rule.getParentRule()) + "." + rule.getCollectionName();
+			return "";
+		return cascade2(rule.getParentRule()) + rule.getCollectionName() + ".$";
 		
 		
 		//a: [{b: [{c: [{"_id":2}]}]}]

@@ -19,7 +19,7 @@ public class App
 {
 	public static void main(String[] args) throws SQLException, ClassNotFoundException, IOException, ParseException, JSQLParserException, InterruptedException {
 		Oracle2Mongo om = new Oracle2Mongo("jdbc:oracle:thin:test/test@localhost:1521:xe", "localhost:3001", "meteor", new File("conf.json"), 22);
-		om.replicateSnapshot();
+		//om.replicateSnapshot();
 		while(true){
 		Thread.sleep(2000);
 		om.replicateContinuent();
