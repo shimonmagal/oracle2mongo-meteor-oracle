@@ -33,14 +33,14 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
 public class ContinuentReplicator {
-	
+
 	private MongoDatabase _mongoDB;
 	private Object _scn;
 	private DataSource _ds;
 	private List<Rule> _rules;
 
-	public ContinuentReplicator(DataSource ds, MongoDatabase mongoDB,
-			long scn, List<Rule> rules) {
+	public ContinuentReplicator(DataSource ds, MongoDatabase mongoDB, long scn,
+			List<Rule> rules) {
 		_ds = ds;
 		_mongoDB = mongoDB;
 		_scn = scn;
@@ -84,122 +84,154 @@ public class ContinuentReplicator {
 
 	}
 
-	private void handle(LinkedList<LogEvent> loggedEvents, Map<String, List<Rule>> tableToRules) throws SQLException {
+	private void handle(LinkedList<LogEvent> loggedEvents,
+			Map<String, List<Rule>> tableToRules) throws SQLException {
 		for (LogEvent logEvent : loggedEvents) {
 			String table = logEvent._tableName.toUpperCase();
 			List<Rule> rules = tableToRules.get(table);
-			for(Rule rule: rules){
+			for (Rule rule : rules) {
 				handleLogEventWithRule(logEvent, rule);
 			}
 		}
 	}
 
-	private void handleLogEventWithRule(LogEvent logEvent, Rule rule) throws SQLException {
-		MongoCollection<Document> coll = _mongoDB.getCollection(rule.getCollectionName());
+	private void handleLogEventWithRule(LogEvent logEvent, Rule rule)
+			throws SQLException {
+		MongoCollection<Document> coll = _mongoDB.getCollection(rule
+				.getCollectionName());
 		String sql = null;
 		String qMarks = qMarks(logEvent._ids.size());
-		if(logEvent._op == OPERATION.INSERT){
-			sql = String.format("select * from %s as of scn ? where id in (%s)", logEvent._tableName,qMarks);
+		if (logEvent._op == OPERATION.INSERT) {
+			sql = String.format(
+					"select * from %s as of scn ? where id in (%s)",
+					logEvent._tableName, qMarks);
+		} else if (logEvent._op == OPERATION.UPDATE) {
+			// "," + rule.getLinkSrc()
+			sql = String.format(
+					"select %s from %s as of scn ? where id in (%s)",
+					logEvent._fields + "," + rule.getIdFieldName(),
+					logEvent._tableName, qMarks);
 		}
-		else if(logEvent._op == OPERATION.UPDATE){
-			//"," + rule.getLinkSrc()
-			sql = String.format("select %s from %s as of scn ? where id in (%s)", logEvent._fields + "," + rule.getIdFieldName() , logEvent._tableName, qMarks);
-		}
-				
-		
-		if(rule.getParentRule() == null && logEvent._op == OPERATION.DELETE){
-			for(Long id: logEvent._ids){
+
+		if (rule.getParentRule() == null && logEvent._op == OPERATION.DELETE) {
+			for (Long id : logEvent._ids) {
 				BsonValue val = new BsonInt64(id);
-				Bson x = new BsonDocument("ID",val);
+				Bson x = new BsonDocument("ID", val);
 				System.out.println(rule.getIdFieldName() + " " + val);
 				System.out.println(x);
 				coll.deleteMany(x);
-				
+
 				System.out.println("delete");
 			}
 			return;
 		}
-		
-		try(
-				Connection connection = _ds.getConnection();
-				PreparedStatement ps = connection.prepareStatement(sql);
-				){
+
+		try (Connection connection = _ds.getConnection();
+				PreparedStatement ps = connection.prepareStatement(sql);) {
 			System.out.println(sql);
-			int k=0;
+			int k = 0;
 			ps.setLong(++k, logEvent._scn);
-			for(Long id:logEvent._ids){
+			for (Long id : logEvent._ids) {
 				ps.setLong(++k, id);
 			}
-			
+
 			System.out.println(sql);
-			try (ResultSet rs = ps.executeQuery()){
+			try (ResultSet rs = ps.executeQuery()) {
 				JSONArray jsonArray = JsonConverter.convert(rs);
-				
-				if(rule.getParentRule() == null && logEvent._op == OPERATION.INSERT){
+
+				if (rule.getParentRule() == null
+						&& logEvent._op == OPERATION.INSERT) {
 					List<Document> docs = new LinkedList<>();
-					for(Object elem:jsonArray){
-						JSONObject joe = (JSONObject)elem;
-						Map<String,Object> map = new HashMap<>();
-						for(Object key:joe.keySet()){
+					for (Object elem : jsonArray) {
+						JSONObject joe = (JSONObject) elem;
+						Map<String, Object> map = new HashMap<>();
+						for (Object key : joe.keySet()) {
 							map.put(key.toString(), joe.get(key).toString());
 						}
 						Document doc = new Document(map);
 						docs.add(doc);
 					}
 					coll.insertMany(docs);
-				}
-				else if(rule.getParentRule() == null && logEvent._op == OPERATION.UPDATE){
-					for(Object elem:jsonArray){
-						BsonValue val = new BsonInt64((Long.parseLong(((JSONObject)elem).get(rule.getIdFieldName()).toString())));
-						Bson x = new BsonDocument("ID",val);
-						JSONObject joe = (JSONObject)elem;
-						
+				} else if (rule.getParentRule() == null
+						&& logEvent._op == OPERATION.UPDATE) {
+					for (Object elem : jsonArray) {
+						BsonValue val = new BsonInt64(
+								(Long.parseLong(((JSONObject) elem).get(
+										rule.getIdFieldName()).toString())));
+						Bson x = new BsonDocument("ID", val);
+						JSONObject joe = (JSONObject) elem;
+
 						List<BsonElement> bsonElements = new LinkedList<>();
-						
-						for(Object key:joe.keySet()){
+
+						for (Object key : joe.keySet()) {
 							String keyS = key.toString();
-							Document doc = new Document("$set", new Document(keyS, joe.get(keyS).toString()));
+							Document doc = new Document("$set", new Document(
+									keyS, joe.get(keyS).toString()));
 							coll.updateOne(x, doc);
 						}
 					}
 				}
-				
-				else if(logEvent._op == OPERATION.INSERT){
-					//Document doc = new Document("$push", new Document(keyS, joe.get(keyS).toString()));
-					for(Long id:logEvent._ids){
-						String doc = "{\"" + cascadeRule(rule) + ".id\":" + id + "}";
-						System.out.println(doc);
-						BsonDocument filterDocument = BsonDocument.parse(doc);
-						String doc2 = cascade2(rule);
-						String doc3 = "{$push : " {+ doc2 + "}}" 
-				//		coll.updateOne(filterDocument, doc );
+
+				else if (logEvent._op == OPERATION.INSERT) {
+					// Document doc = new Document("$push", new Document(keyS,
+					// joe.get(keyS).toString()));
+					for (Object elem : jsonArray) {
+						JSONObject jo = (JSONObject)elem;
+							String doc = "{\"" + cascadeRule(rule.getParentRule()) + "id\":"
+									+ jo.get(rule.getLinkSrc().toUpperCase()) + "}";
+							System.out.println(doc);
+							BsonDocument filterDocument = BsonDocument
+									.parse(doc);
+							String doc2 = cascade2(rule);
+							Document doc3 = docify(elem);
+							String doc4 = "{$push : {\""+ doc2.toString() +"\":" + doc3.toJson() + "}}";
+							System.out.println("doc4" + doc4);
+							BsonDocument infoDocument = BsonDocument
+									.parse(doc4);
+							System.out.println("infoDoc:" + infoDocument);
+							coll.updateOne(filterDocument, infoDocument);
 					}
 				}
 			}
 		}
-		
+
+	}
+
+	private Document docify(Object elem) {
+		JSONObject joe = (JSONObject) elem;
+		Map<String, Object> map = new HashMap<>();
+		for (Object key : joe.keySet()) {
+			map.put(key.toString(), joe.get(key).toString());
+		}
+		Document doc = new Document(map);
+		return doc;
+
 	}
 
 	private String cascade2(Rule rule) {
-		if(rule.getParentRule() == null)
+		if (rule == null)
 			return "";
-		return cascade2(rule.getParentRule()) + rule.getCollectionName() + ".$";
-		
-		
-		//a: [{b: [{c: [{"_id":2}]}]}]
+		if (rule.getParentRule() == null)
+			return"";
+		if (rule.getParentRule().getParentRule() == null)
+			return rule.getCollectionName();
+		return cascade2(rule.getParentRule()) +".$."+ rule.getCollectionName() + ".0";
+
+		// a: [{b: [{c: [{"_id":2}]}]}]
 	}
 
 	private String cascadeRule(Rule rule) {
-		if(rule.getParentRule() == null)
-			return rule.getCollectionName();
-		return cascadeRule(rule.getParentRule()) + "." + rule.getCollectionName();
+		if (rule.getParentRule() == null)
+			return "";
+		return cascadeRule(rule.getParentRule()) + "."
+				+ rule.getCollectionName() + ".";
 	}
 
 	private String qMarks(int size) {
 		StringBuilder sb = new StringBuilder("");
-		for(int i=0;i<size;i++){
+		for (int i = 0; i < size; i++) {
 			sb.append("?");
-			if(i<size-1){
+			if (i < size - 1) {
 				sb.append(",");
 			}
 		}
@@ -241,6 +273,5 @@ public class ContinuentReplicator {
 			getTableNamesToRule(rule.getChildRules(), map);
 		}
 	}
-
 
 }
