@@ -37,10 +37,12 @@ import org.bson.BsonString;
 import org.bson.BsonValue;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.jongo.Jongo;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.ParseException;
 
+import com.mongodb.DB;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
@@ -70,8 +72,9 @@ public class Oracle2Mongo {
 	private int _threadCount;
 	private BasicDataSource _bds;
 	private long _scn;
-	private MongoDatabase _mongoDB;
+	private DB _mongoDB;
 	private ContinuentReplicator _continentReplicator;
+	private Jongo _jongo;
 
 	/**
 	 * creates a replicator between oracle and mongoDB
@@ -145,10 +148,12 @@ public class Oracle2Mongo {
 		_bds.setDriverClassName("oracle.jdbc.driver.OracleDriver");
 		_bds.setMaxActive(_threadCount);
 		MongoClient mongoClient = new MongoClient(_mongoUrl);
-		_mongoDB = mongoClient.getDatabase(_mongoDBName);
+		_mongoDB = mongoClient.getDB(_mongoDBName);
+		_jongo = new Jongo(_mongoDB);
+		
 		_scn = getScn(_bds);
 		
-		_continentReplicator = new ContinuentReplicator(_bds, _mongoDB, _scn, _rules);
+		_continentReplicator = new ContinuentReplicator(_bds, _jongo, _scn, _rules);
 
 	}
 
@@ -160,7 +165,7 @@ public class Oracle2Mongo {
 		ThreadPoolExecutor tpe = new ThreadPoolExecutor(_threadCount,
 				_threadCount, 10000, TimeUnit.SECONDS, jobs);
 		for (Rule rule : _rules) {
-			tpe.execute(new Oracle2MongoSnapshotWorker(rule, _bds, _mongoDB,
+			tpe.execute(new Oracle2MongoSnapshotWorker(rule, _bds, _jongo,
 					_scn));
 		}
 

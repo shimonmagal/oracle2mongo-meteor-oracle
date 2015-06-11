@@ -20,29 +20,22 @@ import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.util.TablesNamesFinder;
 import oracle2mongo.LogEvent.OPERATION;
 
-import org.bson.BsonDocument;
-import org.bson.BsonElement;
-import org.bson.BsonInt64;
-import org.bson.BsonValue;
-import org.bson.Document;
-import org.bson.conversions.Bson;
+import org.jongo.Jongo;
+import org.jongo.MongoCollection;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-
 public class ContinuentReplicator {
 
-	private MongoDatabase _mongoDB;
+	private Jongo _mongoDB;
 	private Object _scn;
 	private DataSource _ds;
 	private List<Rule> _rules;
 
-	public ContinuentReplicator(DataSource ds, MongoDatabase mongoDB, long scn,
+	public ContinuentReplicator(DataSource ds, Jongo _jongo, long scn,
 			List<Rule> rules) {
 		_ds = ds;
-		_mongoDB = mongoDB;
+		_mongoDB = _jongo;
 		_scn = scn;
 		_rules = rules;
 	}
@@ -97,7 +90,7 @@ public class ContinuentReplicator {
 
 	private void handleLogEventWithRule(LogEvent logEvent, Rule rule)
 			throws SQLException {
-		MongoCollection<Document> coll = _mongoDB.getCollection(rule
+		MongoCollection coll = _mongoDB.getCollection(rule
 				.getCollectionName());
 		String sql = null;
 		String qMarks = qMarks(logEvent._ids.size());
@@ -115,12 +108,7 @@ public class ContinuentReplicator {
 
 		if (rule.getParentRule() == null && logEvent._op == OPERATION.DELETE) {
 			for (Long id : logEvent._ids) {
-				BsonValue val = new BsonInt64(id);
-				Bson x = new BsonDocument("ID", val);
-				System.out.println(rule.getIdFieldName() + " " + val);
-				System.out.println(x);
-				coll.deleteMany(x);
-
+				coll.remove("{\"ID\":"+id+"}");
 				System.out.println("delete");
 			}
 			return;
@@ -185,6 +173,10 @@ public class ContinuentReplicator {
 							String doc2 = cascade2(rule);
 							Document doc3 = docify(elem);
 							String doc4 = "{$push : {\""+ doc2.toString() +"\":" + doc3.toJson() + "}}";
+							
+							DBObject listItem = new BasicDBObject("scores", new BasicDBObject("type","quiz").append("score",99));
+							DBObject updateQuery = new BasicDBObject("$push", listItem);
+							
 							System.out.println("doc4" + doc4);
 							BsonDocument infoDocument = BsonDocument
 									.parse(doc4);
