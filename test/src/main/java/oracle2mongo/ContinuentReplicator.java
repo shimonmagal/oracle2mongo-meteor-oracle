@@ -20,11 +20,6 @@ import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.util.TablesNamesFinder;
 import oracle2mongo.LogEvent.OPERATION;
 
-import org.bson.BsonDocument;
-import org.bson.BsonElement;
-import org.bson.BsonValue;
-import org.bson.Document;
-import org.bson.conversions.Bson;
 import org.jongo.Jongo;
 import org.jongo.MongoCollection;
 import org.json.simple.JSONArray;
@@ -134,6 +129,7 @@ public class ContinuentReplicator {
 
 				if (rule.getParentRule() == null
 						&& logEvent._op == OPERATION.INSERT) {
+					List<Document> docs = new LinkedList<>();
 					for (Object elem : jsonArray) {
 						JSONObject joe = (JSONObject) elem;
 						Map<String, Object> map = new HashMap<>();
@@ -141,14 +137,16 @@ public class ContinuentReplicator {
 							map.put(key.toString(), joe.get(key).toString());
 						}
 						Document doc = new Document(map);
-						//we should try to insert in BULK!
-						coll.insert(doc.toJson());
+						docs.add(doc);
 					}
+					coll.insertMany(docs);
 				} else if (rule.getParentRule() == null
 						&& logEvent._op == OPERATION.UPDATE) {
 					for (Object elem : jsonArray) {
-						long id = (Long.parseLong(((JSONObject) elem).get(
-										rule.getIdFieldName()).toString()));
+						BsonValue val = new BsonInt64(
+								(Long.parseLong(((JSONObject) elem).get(
+										rule.getIdFieldName()).toString())));
+						Bson x = new BsonDocument("ID", val);
 						JSONObject joe = (JSONObject) elem;
 
 						List<BsonElement> bsonElements = new LinkedList<>();
@@ -157,7 +155,7 @@ public class ContinuentReplicator {
 							String keyS = key.toString();
 							Document doc = new Document("$set", new Document(
 									keyS, joe.get(keyS).toString()));
-							coll.update("{ID:"+id+"}", doc.toJson());
+							coll.updateOne(x, doc);
 						}
 					}
 				}
@@ -176,16 +174,14 @@ public class ContinuentReplicator {
 							Document doc3 = docify(elem);
 							String doc4 = "{$push : {\""+ doc2.toString() +"\":" + doc3.toJson() + "}}";
 							
-							coll.update(doc, doc4);
-							
-							/*DBObject listItem = new BasicDBObject("scores", new BasicDBObject("type","quiz").append("score",99));
+							DBObject listItem = new BasicDBObject("scores", new BasicDBObject("type","quiz").append("score",99));
 							DBObject updateQuery = new BasicDBObject("$push", listItem);
 							
 							System.out.println("doc4" + doc4);
 							BsonDocument infoDocument = BsonDocument
 									.parse(doc4);
 							System.out.println("infoDoc:" + infoDocument);
-							coll.updateOne(filterDocument, infoDocument);*/
+							coll.updateOne(filterDocument, infoDocument);
 					}
 				}
 			}
