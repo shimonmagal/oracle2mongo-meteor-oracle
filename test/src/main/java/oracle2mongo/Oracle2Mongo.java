@@ -2,50 +2,27 @@ package oracle2mongo;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.StringReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import net.sf.jsqlparser.JSQLParserException;
-import net.sf.jsqlparser.parser.CCJSqlParserManager;
-import net.sf.jsqlparser.parser.JSqlParser;
-import net.sf.jsqlparser.statement.select.Select;
-import net.sf.jsqlparser.util.TablesNamesFinder;
-import oracle2mongo.LogEvent.OPERATION;
 
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.commons.io.FileUtils;
-import org.bson.BSON;
-import org.bson.BsonDocument;
-import org.bson.BsonElement;
-import org.bson.BsonInt32;
-import org.bson.BsonInt64;
-import org.bson.BsonString;
-import org.bson.BsonValue;
-import org.bson.Document;
-import org.bson.conversions.Bson;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.ParseException;
 
-import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.util.JSON;
 
 public class Oracle2Mongo {
 

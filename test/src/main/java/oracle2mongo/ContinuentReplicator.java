@@ -23,6 +23,7 @@ import oracle2mongo.LogEvent.OPERATION;
 import org.bson.BsonDocument;
 import org.bson.BsonElement;
 import org.bson.BsonInt64;
+import org.bson.BsonString;
 import org.bson.BsonValue;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -31,6 +32,7 @@ import org.json.simple.JSONObject;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.result.UpdateResult;
 
 public class ContinuentReplicator {
 
@@ -115,7 +117,7 @@ public class ContinuentReplicator {
 
 		if (rule.getParentRule() == null && logEvent._op == OPERATION.DELETE) {
 			for (Long id : logEvent._ids) {
-				BsonValue val = new BsonInt64(id);
+				BsonValue val = new BsonString(id+"");
 				Bson x = new BsonDocument("ID", val);
 				System.out.println(rule.getIdFieldName() + " " + val);
 				System.out.println(x);
@@ -155,8 +157,8 @@ public class ContinuentReplicator {
 				} else if (rule.getParentRule() == null
 						&& logEvent._op == OPERATION.UPDATE) {
 					for (Object elem : jsonArray) {
-						BsonValue val = new BsonInt64(
-								(Long.parseLong(((JSONObject) elem).get(
+						BsonValue val = new BsonString(
+								""+(Long.parseLong(((JSONObject) elem).get(
 										rule.getIdFieldName()).toString())));
 						Bson x = new BsonDocument("ID", val);
 						JSONObject joe = (JSONObject) elem;
@@ -167,6 +169,8 @@ public class ContinuentReplicator {
 							String keyS = key.toString();
 							Document doc = new Document("$set", new Document(
 									keyS, joe.get(keyS).toString()));
+							System.out.println(x);
+							System.out.println(doc);
 							coll.updateOne(x, doc);
 						}
 					}
@@ -189,7 +193,8 @@ public class ContinuentReplicator {
 							BsonDocument infoDocument = BsonDocument
 									.parse(doc4);
 							System.out.println("infoDoc:" + infoDocument);
-							coll.updateOne(filterDocument, infoDocument);
+							UpdateResult r = coll.updateOne(filterDocument, infoDocument);
+							System.out.println(r.getModifiedCount());
 					}
 				}
 			}
