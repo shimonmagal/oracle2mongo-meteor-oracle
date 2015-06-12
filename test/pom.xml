@@ -27,13 +27,6 @@
 			<artifactId>mongo-java-driver</artifactId>
 			<version>3.0.1</version>
 		</dependency>
-		
-		
-		<dependency>
-    		<groupId>org.jongo</groupId>
-    		<artifactId>jongo</artifactId>
-    		<version>1.2</version>
-		</dependency>
 
 		<dependency>
 			<groupId>org.apache.commons</groupId>

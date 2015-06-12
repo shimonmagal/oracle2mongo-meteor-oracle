@@ -10,24 +10,25 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
-import org.jongo.Jongo;
-import org.jongo.MongoCollection;
+import org.bson.Document;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 
 public class Oracle2MongoSnapshotWorker implements Runnable{
 
+	private MongoDatabase _mongoDB;
 	private DataSource _dbDataSource;
 	private Rule _rule;
 	private long _scn;
-	private Jongo _mongoDB;
 
 	public Oracle2MongoSnapshotWorker(Rule rule, DataSource dbDataSource,
-			Jongo jongo, long scn) {
+			MongoDatabase mongoDB, long scn) {
 		_rule = rule;
 		_dbDataSource = dbDataSource;
-		_mongoDB = jongo;
+		_mongoDB = mongoDB;
 		_scn = scn;
 
 	}
@@ -40,18 +41,22 @@ public class Oracle2MongoSnapshotWorker implements Runnable{
 			String coll = _rule.getCollectionName();
 			if(coll == null){
 				System.out.println(_rule);
-				//_mongoDB.getDatabase().cre.createCollection(_rule.getCollectionName());
+				_mongoDB.createCollection(_rule.getCollectionName());
 			}
-			MongoCollection collection = _mongoDB.getCollection(coll);
+			MongoCollection<Document> collection = _mongoDB.getCollection(coll);
 
+			List<Document> docs = new LinkedList<>();
 			System.out.println("-----------=====");
 			for (Object elem : res) {
 				JSONObject jo = (JSONObject) elem;
-				collection.insert(((JSONArray) jo.get(coll)).get(0)
+				Document doc = Document.parse(((JSONArray) jo.get(coll)).get(0)
 						.toString());
+				docs.add(doc);
+				System.out.println(doc);
 			}
 
-			
+			System.out.println(collection.getNamespace());
+			collection.insertMany(docs);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
