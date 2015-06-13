@@ -33,7 +33,6 @@ import org.json.simple.JSONObject;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.result.UpdateResult;
-import com.mongodb.util.JSON;
 
 public class ContinuentReplicator {
 
@@ -100,7 +99,7 @@ public class ContinuentReplicator {
 
 	private void handleLogEventWithRule(LogEvent logEvent, Rule rule)
 			throws SQLException {
-		MongoCollection<Document> coll = _mongoDB.getCollection(rule
+		MongoCollection<Document> coll = _mongoDB.getCollection(cascadeRule3(rule)
 				.getCollectionName());
 		String sql = null;
 		String qMarks = qMarks(logEvent._ids.size());
@@ -170,12 +169,9 @@ public class ContinuentReplicator {
 							String keyS = key.toString();
 							Document doc = new Document("$set", new Document(
 									keyS, joe.get(keyS).toString()));
-							
-							Object y = JSON.parse("{$set: {"+keyS+ ":\"" + joe.get(keyS).toString() + "\"}}");
 							System.out.println(x);
-							System.out.println(y);
-							UpdateResult r = coll.updateOne(x, (Bson) y);
-							System.out.println(r.getModifiedCount());
+							System.out.println(doc);
+							coll.updateOne(x, doc);
 						}
 					}
 				}
@@ -186,7 +182,7 @@ public class ContinuentReplicator {
 					for (Object elem : jsonArray) {
 						JSONObject jo = (JSONObject)elem;
 							String doc = "{\"" + cascadeRule(rule.getParentRule()) + "ID\":\""
-									+ jo.get(rule.getLinkSrc().toUpperCase()).toString() + "\"}";
+									+ jo.get(rule.getLinkSrc().toUpperCase()) + "\"}";
 							System.out.println(doc);
 							BsonDocument filterDocument = BsonDocument
 									.parse(doc);
@@ -196,17 +192,20 @@ public class ContinuentReplicator {
 							System.out.println("doc4" + doc4);
 							BsonDocument infoDocument = BsonDocument
 									.parse(doc4);
-							System.out.println("filterDoc:" + filterDocument);
 							System.out.println("infoDoc:" + infoDocument);
-							infoDocument = BsonDocument.parse("{$set: {IAD:\"1999\", x:123}}");
-							System.out.println(infoDocument);
-							UpdateResult r = coll.updateMany(filterDocument, infoDocument);
+							UpdateResult r = coll.updateOne(filterDocument, infoDocument);
 							System.out.println(r.getModifiedCount());
 					}
 				}
 			}
 		}
 
+	}
+
+	private Rule cascadeRule3(Rule rule) {
+		if(rule.getParentRule() == null)
+			return rule;
+		return cascadeRule3(rule.getParentRule());
 	}
 
 	private Document docify(Object elem) {
