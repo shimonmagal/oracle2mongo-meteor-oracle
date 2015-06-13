@@ -33,6 +33,7 @@ import org.json.simple.JSONObject;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.result.UpdateResult;
+import com.mongodb.util.JSON;
 
 public class ContinuentReplicator {
 
@@ -169,9 +170,12 @@ public class ContinuentReplicator {
 							String keyS = key.toString();
 							Document doc = new Document("$set", new Document(
 									keyS, joe.get(keyS).toString()));
+							
+							Object y = JSON.parse("{$set: {"+keyS+ ":\"" + joe.get(keyS).toString() + "\"}}");
 							System.out.println(x);
-							System.out.println(doc);
-							coll.updateOne(x, doc);
+							System.out.println(y);
+							UpdateResult r = coll.updateOne(x, (Bson) y);
+							System.out.println(r.getModifiedCount());
 						}
 					}
 				}
@@ -181,8 +185,8 @@ public class ContinuentReplicator {
 					// joe.get(keyS).toString()));
 					for (Object elem : jsonArray) {
 						JSONObject jo = (JSONObject)elem;
-							String doc = "{\"" + cascadeRule(rule.getParentRule()) + "id\":"
-									+ jo.get(rule.getLinkSrc().toUpperCase()) + "}";
+							String doc = "{\"" + cascadeRule(rule.getParentRule()) + "ID\":\""
+									+ jo.get(rule.getLinkSrc().toUpperCase()).toString() + "\"}";
 							System.out.println(doc);
 							BsonDocument filterDocument = BsonDocument
 									.parse(doc);
@@ -192,8 +196,11 @@ public class ContinuentReplicator {
 							System.out.println("doc4" + doc4);
 							BsonDocument infoDocument = BsonDocument
 									.parse(doc4);
+							System.out.println("filterDoc:" + filterDocument);
 							System.out.println("infoDoc:" + infoDocument);
-							UpdateResult r = coll.updateOne(filterDocument, infoDocument);
+							infoDocument = BsonDocument.parse("{$set: {IAD:\"1999\", x:123}}");
+							System.out.println(infoDocument);
+							UpdateResult r = coll.updateMany(filterDocument, infoDocument);
 							System.out.println(r.getModifiedCount());
 					}
 				}
