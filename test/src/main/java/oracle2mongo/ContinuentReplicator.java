@@ -208,12 +208,17 @@ public class ContinuentReplicator {
 					// Document doc = new Document("$push", new Document(keyS,
 					// joe.get(keyS).toString()));
 					for (Long id:logEvent._ids) {
-							String doc = "{\"" + cascadeRule(rule.getParentRule()) + "ID\":\""
+						
+						/*
+						 * 
+						 * meteor:PRIMARY> db.x.update({"a.b.c.d._id": 111}, {$pull: {"a.0.b.0.c.0.d" : {_id:111}}});
+						 */
+							String doc = "{\"" + cascadeRule4(rule.getParentRule()) + "ID\":\""
 									+ id + "\"}";
 							System.out.println(doc);
 							BsonDocument filterDocument = BsonDocument
 									.parse(doc);
-							String doc4 = "{$pull : {\""+ "ID" +"\":\"" + id + "\"}}";
+							String doc4 = "{$pull : {\""+ cascade5(rule) +"\":\"" + "{\"ID\": }" + "\"}}";
 							System.out.println("doc4" + doc4);
 							BsonDocument infoDocument = BsonDocument
 									.parse(doc4);
@@ -256,6 +261,19 @@ public class ContinuentReplicator {
 
 		// a: [{b: [{c: [{"_id":2}]}]}]
 	}
+	
+	private String cascade5(Rule rule) {
+		if (rule == null)
+			return "";
+		if (rule.getParentRule() == null)
+			return rule.getCollectionName();
+		if (rule.getParentRule().getParentRule() == null)
+			return rule.getCollectionName();
+		return cascade2(rule.getParentRule()) +".$."+ rule.getCollectionName() + ".0";
+
+		// a: [{b: [{c: [{"_id":2}]}]}]
+	}
+
 
 	private String cascadeRule(Rule rule) {
 		if (rule.getParentRule() == null)
@@ -263,6 +281,16 @@ public class ContinuentReplicator {
 		return cascadeRule(rule.getParentRule()) + "."
 				+ rule.getCollectionName() + ".";
 	}
+	
+	private String cascadeRule4(Rule rule) {
+		if (rule.getParentRule() == null)
+			return "";
+		if (rule.getParentRule().getParentRule() == null)
+			return rule.getCollectionName();
+		return cascadeRule(rule.getParentRule()) + "."
+				+ rule.getCollectionName() + ".";
+	}
+
 
 	private String qMarks(int size) {
 		StringBuilder sb = new StringBuilder("");
