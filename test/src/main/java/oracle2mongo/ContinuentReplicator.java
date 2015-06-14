@@ -130,11 +130,13 @@ public class ContinuentReplicator {
 
 		try (Connection connection = _ds.getConnection();
 				PreparedStatement ps = connection.prepareStatement(sql);) {
+			if(sql != null){
 			System.out.println(sql);
 			int k = 0;
 			ps.setLong(++k, logEvent._scn);
 			for (Long id : logEvent._ids) {
 				ps.setLong(++k, id);
+			}
 			}
 
 			System.out.println(sql);
@@ -197,6 +199,30 @@ public class ContinuentReplicator {
 							System.out.println(r.getModifiedCount());
 					}
 				}
+				
+				
+				
+				
+				
+				else if (logEvent._op == OPERATION.DELETE) {
+					// Document doc = new Document("$push", new Document(keyS,
+					// joe.get(keyS).toString()));
+					for (Long id:logEvent._ids) {
+							String doc = "{\"" + cascadeRule(rule.getParentRule()) + "ID\":\""
+									+ id + "\"}";
+							System.out.println(doc);
+							BsonDocument filterDocument = BsonDocument
+									.parse(doc);
+							String doc4 = "{$pull : {\""+ "ID" +"\":\"" + id + "\"}}";
+							System.out.println("doc4" + doc4);
+							BsonDocument infoDocument = BsonDocument
+									.parse(doc4);
+							System.out.println("infoDoc:" + infoDocument);
+							UpdateResult r = coll.updateOne(filterDocument, infoDocument);
+							System.out.println(r.getModifiedCount());
+					}
+				}
+
 			}
 		}
 
