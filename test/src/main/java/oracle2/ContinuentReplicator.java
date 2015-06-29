@@ -1,4 +1,4 @@
-package oracle2mongo;
+package oracle2;
 
 import java.io.StringReader;
 import java.sql.Connection;
@@ -18,7 +18,7 @@ import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.parser.CCJSqlParserManager;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.util.TablesNamesFinder;
-import oracle2mongo.LogEvent.OPERATION;
+import oracle2.LogEvent.OPERATION;
 
 import org.bson.BsonDocument;
 import org.bson.BsonElement;

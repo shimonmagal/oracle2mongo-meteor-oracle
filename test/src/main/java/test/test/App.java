@@ -7,7 +7,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import net.sf.jsqlparser.JSQLParserException;
-import oracle2mongo.Oracle2Mongo;
+import oracle2.Oracle2Mongo;
 
 import org.json.simple.parser.ParseException;
 

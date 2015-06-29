@@ -1,4 +1,4 @@
-package oracle2mongo;
+package oracle2;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
