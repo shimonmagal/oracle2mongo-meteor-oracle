@@ -40,14 +40,12 @@ public class Oracle2Mongo {
 	}
 
 	private String _jdbcUrl;
-	private String _mongoUrl;
-	private String _mongoDBName;
 	private String _configurationString;
 	private List<Rule> _rules;
 	private int _threadCount;
 	private BasicDataSource _bds;
 	private long _scn;
-	private MongoDatabase _mongoDB;
+	private DBWrapper _destDB;
 	private ContinuentReplicator _continentReplicator;
 
 	/**
@@ -65,16 +63,16 @@ public class Oracle2Mongo {
 	 *            documentation
 	 * @param threadCount
 	 *            - number of threads to use
+	 * @param destDB 
 	 * @throws IOException
 	 * @throws ParseException
 	 * @throws SQLException 
 	 */
-	public Oracle2Mongo(String jdbcUrl, String mongoUrl, String mongoDBName,
-			File configuration, int threadCount) throws IOException,
+	public Oracle2Mongo(String jdbcUrl, File configuration, int threadCount, DBWrapper destDB) throws IOException,
 			ParseException, SQLException {
 		// read file
-		this(jdbcUrl, mongoUrl, mongoDBName, FileUtils
-				.readFileToString(configuration), threadCount);
+		this(jdbcUrl, FileUtils
+				.readFileToString(configuration), threadCount, destDB);
 	}
 
 	/**
@@ -91,10 +89,10 @@ public class Oracle2Mongo {
 	 * @throws SQLException
 	 * @throws ParseException
 	 */
-	public Oracle2Mongo(String jdbcUrl, String mongoUrl, String mongoDBName,
+	public Oracle2Mongo(String jdbcUrl, DBWrapper destDB,
 			int threadCount) throws SQLException, ParseException {
-		this(jdbcUrl, mongoUrl, mongoDBName,
-				createDefaultConfiguratuin(jdbcUrl), threadCount);
+		this(jdbcUrl,
+				createDefaultConfiguratuin(jdbcUrl), threadCount, destDB);
 	}
 
 	/**
@@ -104,14 +102,13 @@ public class Oracle2Mongo {
 	 * @param mongoUrl
 	 * @param mongoDBName
 	 * @param configurationString
+	 * @param destDB 
 	 * @throws ParseException
 	 * @throws SQLException 
 	 */
-	private Oracle2Mongo(String jdbcUrl, String mongoUrl, String mongoDBName,
-			String configurationString, int threadCount) throws ParseException, SQLException {
+	private Oracle2Mongo(String jdbcUrl, 
+			String configurationString, int threadCount, DBWrapper destDB) throws ParseException, SQLException {
 		_jdbcUrl = jdbcUrl;
-		_mongoUrl = mongoUrl;
-		_mongoDBName = mongoDBName;
 		_threadCount = threadCount;
 		_configurationString = configurationString.toUpperCase(); // upper case
 		ConfigurationParser confParser = new ConfigurationParser(
@@ -121,11 +118,10 @@ public class Oracle2Mongo {
 		_bds.setUrl(_jdbcUrl);
 		_bds.setDriverClassName("oracle.jdbc.driver.OracleDriver");
 		_bds.setMaxActive(_threadCount);
-		MongoClient mongoClient = new MongoClient(_mongoUrl);
-		_mongoDB = mongoClient.getDatabase(_mongoDBName);
+		_destDB = destDB;
 		_scn = getScn(_bds);
 		
-		_continentReplicator = new ContinuentReplicator(_bds, _mongoDB, _scn, _rules);
+		_continentReplicator = new ContinuentReplicator(_bds, _destDB, _scn, _rules);
 
 	}
 
@@ -137,7 +133,7 @@ public class Oracle2Mongo {
 		ThreadPoolExecutor tpe = new ThreadPoolExecutor(_threadCount,
 				_threadCount, 10000, TimeUnit.SECONDS, jobs);
 		for (Rule rule : _rules) {
-			tpe.execute(new Oracle2SnapshotWorker(rule, _bds, _mongoDB,
+			tpe.execute(new Oracle2SnapshotWorker(rule, _bds, _destDB,
 					_scn));
 		}
 

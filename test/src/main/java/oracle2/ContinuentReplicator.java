@@ -36,15 +36,15 @@ import com.mongodb.client.result.UpdateResult;
 
 public class ContinuentReplicator {
 
-	private MongoDatabase _mongoDB;
 	private Object _scn;
 	private DataSource _ds;
 	private List<Rule> _rules;
+	private DBWrapper _destDB;
 
-	public ContinuentReplicator(DataSource ds, MongoDatabase mongoDB, long scn,
+	public ContinuentReplicator(DataSource ds, DBWrapper destDB, long scn,
 			List<Rule> rules) {
 		_ds = ds;
-		_mongoDB = mongoDB;
+		_destDB = destDB;
 		_scn = scn;
 		_rules = rules;
 	}
@@ -99,7 +99,7 @@ public class ContinuentReplicator {
 
 	private void handleLogEventWithRule(LogEvent logEvent, Rule rule)
 			throws SQLException {
-		MongoCollection<Document> coll = _mongoDB.getCollection(cascadeRule3(rule)
+		DBWrapperCollection coll = _destDB.getCollection(cascadeRule3(rule)
 				.getCollectionName());
 		String sql = null;
 		String qMarks = qMarks(logEvent._ids.size());
@@ -195,8 +195,7 @@ public class ContinuentReplicator {
 							BsonDocument infoDocument = BsonDocument
 									.parse(doc4);
 							System.out.println("infoDoc:" + infoDocument);
-							UpdateResult r = coll.updateOne(filterDocument, infoDocument);
-							System.out.println(r.getModifiedCount());
+							coll.updateOne(filterDocument, infoDocument);
 					}
 				}
 				
@@ -223,8 +222,7 @@ public class ContinuentReplicator {
 							BsonDocument infoDocument = BsonDocument
 									.parse(doc4);
 							System.out.println("infoDoc:" + infoDocument);
-							UpdateResult r = coll.updateOne(filterDocument, infoDocument);
-							System.out.println(r.getModifiedCount());
+							coll.updateOne(filterDocument, infoDocument);
 					}
 				}
 

@@ -19,16 +19,16 @@ import com.mongodb.client.MongoDatabase;
 
 public class Oracle2SnapshotWorker implements Runnable{
 
-	private MongoDatabase _destDBWrapper;
+	private DBWrapper _destDBWrapper;
 	private DataSource _dbDataSource;
 	private Rule _rule;
 	private long _scn;
 
 	public Oracle2SnapshotWorker(Rule rule, DataSource dbDataSource,
-			MongoDatabase mongoDB, long scn) {
+			DBWrapper destDB, long scn) {
 		_rule = rule;
 		_dbDataSource = dbDataSource;
-		_destDBWrapper = mongoDB;
+		_destDBWrapper = destDB;
 		_scn = scn;
 
 	}
@@ -43,7 +43,7 @@ public class Oracle2SnapshotWorker implements Runnable{
 				System.out.println(_rule);
 				_destDBWrapper.createCollection(_rule.getCollectionName());
 			}
-			MongoCollection<Document> collection = _destDBWrapper.getCollection(coll);
+			DBWrapperCollection collection = _destDBWrapper.getCollection(coll);
 
 			List<Document> docs = new LinkedList<>();
 			System.out.println("-----------=====");
@@ -55,7 +55,6 @@ public class Oracle2SnapshotWorker implements Runnable{
 				System.out.println(doc);
 			}
 
-			System.out.println(collection.getNamespace());
 			collection.insertMany(docs);
 		} catch (SQLException e) {
 			e.printStackTrace();
