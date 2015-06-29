@@ -17,18 +17,18 @@ import org.json.simple.JSONObject;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
-public class Oracle2MongoSnapshotWorker implements Runnable{
+public class Oracle2SnapshotWorker implements Runnable{
 
-	private MongoDatabase _mongoDB;
+	private MongoDatabase _destDBWrapper;
 	private DataSource _dbDataSource;
 	private Rule _rule;
 	private long _scn;
 
-	public Oracle2MongoSnapshotWorker(Rule rule, DataSource dbDataSource,
+	public Oracle2SnapshotWorker(Rule rule, DataSource dbDataSource,
 			MongoDatabase mongoDB, long scn) {
 		_rule = rule;
 		_dbDataSource = dbDataSource;
-		_mongoDB = mongoDB;
+		_destDBWrapper = mongoDB;
 		_scn = scn;
 
 	}
@@ -41,9 +41,9 @@ public class Oracle2MongoSnapshotWorker implements Runnable{
 			String coll = _rule.getCollectionName();
 			if(coll == null){
 				System.out.println(_rule);
-				_mongoDB.createCollection(_rule.getCollectionName());
+				_destDBWrapper.createCollection(_rule.getCollectionName());
 			}
-			MongoCollection<Document> collection = _mongoDB.getCollection(coll);
+			MongoCollection<Document> collection = _destDBWrapper.getCollection(coll);
 
 			List<Document> docs = new LinkedList<>();
 			System.out.println("-----------=====");

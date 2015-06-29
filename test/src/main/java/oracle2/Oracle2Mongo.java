@@ -137,7 +137,7 @@ public class Oracle2Mongo {
 		ThreadPoolExecutor tpe = new ThreadPoolExecutor(_threadCount,
 				_threadCount, 10000, TimeUnit.SECONDS, jobs);
 		for (Rule rule : _rules) {
-			tpe.execute(new Oracle2MongoSnapshotWorker(rule, _bds, _mongoDB,
+			tpe.execute(new Oracle2SnapshotWorker(rule, _bds, _mongoDB,
 					_scn));
 		}
 
