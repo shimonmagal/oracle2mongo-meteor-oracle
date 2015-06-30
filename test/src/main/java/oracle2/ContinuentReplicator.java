@@ -145,17 +145,7 @@ public class ContinuentReplicator {
 
 				if (rule.getParentRule() == null
 						&& logEvent._op == OPERATION.INSERT) {
-					List<Document> docs = new LinkedList<>();
-					for (Object elem : jsonArray) {
-						JSONObject joe = (JSONObject) elem;
-						Map<String, Object> map = new HashMap<>();
-						for (Object key : joe.keySet()) {
-							map.put(key.toString(), joe.get(key).toString());
-						}
-						Document doc = new Document(map);
-						docs.add(doc);
-					}
-					coll.insertMany(docs);
+					coll.insertMany(jsonArray);
 				} else if (rule.getParentRule() == null
 						&& logEvent._op == OPERATION.UPDATE) {
 					for (Object elem : jsonArray) {

@@ -1,21 +1,22 @@
 package oracle2mongo;
 
-import org.bson.Document;
-
-import com.mongodb.MongoClient;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
+import java.io.Closeable;
+import java.io.IOException;
 
 import oracle2.DBWrapper;
 import oracle2.DBWrapperCollection;
 
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
+
 public class MongoWrapper implements DBWrapper{
 
 	private MongoDatabase _con;
+	private MongoClient _mongoClient;
 
 	public MongoWrapper(String url, String db) {
-		MongoClient mongoClient = new MongoClient(url);
-		_con = mongoClient.getDatabase(db);
+		_mongoClient = new MongoClient(url);
+		_con = _mongoClient.getDatabase(db);
 	}
 
 	@Override
@@ -27,5 +28,12 @@ public class MongoWrapper implements DBWrapper{
 	public DBWrapperCollection getCollection(String coll) {
 		return new MongoWrapperCollection(_con.getCollection(coll));
 	}
+
+	@Override
+	public void close() throws IOException {
+		_mongoClient.close();
+		
+	}
+	
 
 }

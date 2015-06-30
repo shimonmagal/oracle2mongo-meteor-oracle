@@ -1,16 +1,14 @@
 package oracle2;
 
 import java.util.List;
+import java.util.Map;
 
 import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
-import com.mongodb.client.result.UpdateResult;
 
 public interface DBWrapperCollection {
-
-	public void insertMany(List<Document> docs);
 
 	public void deleteMany(Bson x);
 
@@ -18,5 +16,7 @@ public interface DBWrapperCollection {
 
 	public void updateOne(BsonDocument filterDocument,
 			BsonDocument infoDocument);
+
+	void insertMany(List<Map<String, Object>> docs);
 
 }

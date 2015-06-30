@@ -1,10 +1,8 @@
 package oracle2;
 
-import org.bson.Document;
+import java.io.Closeable;
 
-import com.mongodb.client.MongoCollection;
-
-public interface DBWrapper {
+public interface DBWrapper extends Closeable {
 
 	void createCollection(String collectionName);
 

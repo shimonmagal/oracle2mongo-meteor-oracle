@@ -45,17 +45,7 @@ public class Oracle2SnapshotWorker implements Runnable{
 			}
 			DBWrapperCollection collection = _destDBWrapper.getCollection(coll);
 
-			List<Document> docs = new LinkedList<>();
-			System.out.println("-----------=====");
-			for (Object elem : res) {
-				JSONObject jo = (JSONObject) elem;
-				Document doc = Document.parse(((JSONArray) jo.get(coll)).get(0)
-						.toString());
-				docs.add(doc);
-				System.out.println(doc);
-			}
-
-			collection.insertMany(docs);
+			collection.insertMany(res);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
